@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Photo Editor</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <main>
+    <h1>Photo Editor</h1>
+
+    <section class="panel">
+      <label for="file">Chọn ảnh (JPG, PNG, WebP, tối đa 10 MB)</label>
+      <div class="row">
+        <input type="file" id="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+        <button id="upload" type="button">Tải ảnh lên</button>
+      </div>
+      <p id="status" role="status"></p>
+    </section>
+
+    <section class="panel" id="editor" hidden>
+      <dl id="meta"></dl>
+      <div class="row">
+        <button id="gray" type="button">Chuyển xám</button>
+        <select id="fmt" aria-label="Định dạng tải xuống">
+          <option value="png">PNG</option>
+          <option value="jpg">JPG</option>
+          <option value="webp">WebP</option>
+        </select>
+        <button id="download" type="button">Tải xuống</button>
+      </div>
+      <div class="compare">
+        <figure><figcaption>Ảnh gốc</figcaption><img id="orig" alt="Ảnh gốc"></figure>
+        <figure><figcaption>Kết quả</figcaption><img id="result" alt="Ảnh kết quả"></figure>
+      </div>
+    </section>
+  </main>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
