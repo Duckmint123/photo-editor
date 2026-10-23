@@ -11,11 +11,11 @@
     <h1>Photo Editor</h1>
 
     <section class="panel">
-      <label for="file">Chọn ảnh (JPG, PNG, WebP, tối đa 10 MB)</label>
-      <div class="row">
-        <input type="file" id="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
-        <button id="upload" type="button">Tải ảnh lên</button>
-      </div>
+      <label class="dropzone" id="dropzone">
+        <input type="file" id="file" class="visually-hidden" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+        <span class="dz-title">Kéo ảnh vào đây hoặc bấm để chọn ảnh</span>
+        <span class="dz-hint">JPG, PNG, WebP, tối đa 10 MB</span>
+      </label>
       <p id="status" role="status"></p>
     </section>
 

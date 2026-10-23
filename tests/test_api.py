@@ -7,9 +7,9 @@ import cv2
 import numpy as np
 from PIL import Image, ImageOps
 
-from app import create_app
-from app.image_processing import OPERATIONS
-from app.validators.operations import PARAM_VALIDATORS
+from imageeditor.app.backend import create_app
+from imageeditor.app.backend.image_processing import OPERATIONS
+from app.backend.validators.operations import PARAM_VALIDATORS
 
 from .conftest import decode, export, make_image, new_image, op, upload
 
