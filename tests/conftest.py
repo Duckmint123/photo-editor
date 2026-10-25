@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import pytest
 
-from app import create_app
+from imageeditor.app.backend import create_app
 
 
 @pytest.fixture

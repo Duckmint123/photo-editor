@@ -1,4 +1,4 @@
-from imageeditor.app.backend import create_app
+from app.backend import create_app
 
 app = create_app()
 

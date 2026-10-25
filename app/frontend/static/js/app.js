@@ -6,6 +6,11 @@ let busy = false;   // đang gọi API: bỏ qua thao tác mới, kể cả th�
 const objectUrls = { orig: null, result: null };
 let originalLoadedFor = null;
 
+const STEP_LABELS = {
+  grayscale: "Chuyển xám", brightness: "Độ sáng", contrast: "Tương phản", blur: "Làm mờ",
+  sharpen: "Làm nét", rotate: "Xoay", flip: "Lật", resize: "Đổi kích thước", crop: "Cắt",
+};
+
 // ---------- Lỗi và gọi API ----------
 
 class ApiError extends Error {
@@ -54,9 +59,19 @@ function setStatus(message, isError = false) {
   el.className = isError ? "error" : "";
 }
 
+// Khóa mọi nút khi đang gọi API; khi rảnh thì Hoàn tác/Làm lại/Đặt lại theo trạng thái lịch sử
+function updateButtons() {
+  document.querySelectorAll("button").forEach((b) => (b.disabled = busy));
+  if (!busy && image) {
+    $("undo").disabled = !image.canUndo;
+    $("redo").disabled = !image.canRedo;
+    $("reset").disabled = !(image.canUndo || image.canRedo);
+  }
+}
+
 function setBusy(value) {
   busy = value;
-  document.querySelectorAll("button").forEach((b) => (b.disabled = value));
+  updateButtons();
 }
 
 // Gộp dữ liệu server trả về (upload, áp dụng thao tác, hoặc lỗi 409) vào trạng thái hiện tại
@@ -66,6 +81,9 @@ function syncFrom(data) {
     id: data.image_id ?? prev.id,
     version: data.version ?? data.current_version ?? prev.version,
     historyLength: data.history_length ?? prev.historyLength,
+    canUndo: data.can_undo ?? prev.canUndo,
+    canRedo: data.can_redo ?? prev.canRedo,
+    steps: data.steps ?? prev.steps,
     current: data.current ?? prev.current,
     previewUrl: data.preview_url ?? prev.previewUrl,
     originalUrl: data.original_preview_url ?? prev.originalUrl,
@@ -90,7 +108,7 @@ function renderInfo() {
     ["Tỷ lệ", c.width / g + ":" + c.height / g + " (" + (c.width / c.height).toFixed(3) + ")"],
     ["Chế độ màu", c.color_mode === "grayscale" ? "Ảnh xám" : "Màu"],
     ["Kênh alpha", c.has_alpha ? "Có" : "Không"],
-    ["Số bước đã áp dụng", String(image.historyLength)],
+    ["Các bước đã áp dụng", image.steps.map((s) => STEP_LABELS[s] || s).join(" → ") || "chưa có"],
     ["Hết hạn lúc", new Date(image.expiresAt).toLocaleTimeString("vi-VN")],
   ];
   const meta = $("meta");
@@ -103,6 +121,26 @@ function renderInfo() {
     meta.append(dt, dd);
   }
   $("editor").hidden = false;
+}
+
+function setSlider(id, value) {
+  $(id).value = value;
+  $(id + "-out").textContent = String(value);
+}
+
+// Sau mỗi thay đổi: thanh trượt về mặc định, ô kích thước và vùng cắt theo ảnh hiện tại
+function syncControls() {
+  const c = image.current;
+  setSlider("brightness", 0);
+  setSlider("contrast", 1);
+  setSlider("blur", 5);
+  $("sharpen").value = "2";
+  $("rs-width").value = c.width;
+  $("rs-height").value = c.height;
+  $("cr-x").value = 0;
+  $("cr-y").value = 0;
+  $("cr-w").value = c.width;
+  $("cr-h").value = c.height;
 }
 
 // <img src> không đọc được JSON lỗi (409, 404...), nên tải bằng fetch rồi tạo Object URL
@@ -120,6 +158,8 @@ async function loadPreview(key, img, url) {
 
 async function refreshView() {
   renderInfo();
+  syncControls();
+  updateButtons();
   if (originalLoadedFor !== image.id) {   // ảnh gốc chỉ cần tải một lần cho mỗi ảnh
     await loadPreview("orig", $("orig"), image.originalUrl);
     originalLoadedFor = image.id;
@@ -224,32 +264,70 @@ zone.addEventListener("drop", (e) => {
 
 // ---------- Thao tác trên ảnh ----------
 
-$("gray").addEventListener("click", () =>
-  run(async () => {
-    setStatus("Đang xử lý...");
-    let data, message;
-    try {
-      ({ data, message } = await request("/api/images/" + image.id + "/operations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operation: "grayscale", parameters: {}, expected_version: image.version }),
-      }));
-    } catch (err) {
-      if (err.code === "NETWORK_ERROR") {
-        // Chưa biết server đã ghi bước này chưa: không tự gửi lặp, bắt đầu phiên mới
-        resetEditor();
-        throw new ApiError(
-          "Mất kết nối khi áp dụng thao tác nên chưa rõ ảnh đã đổi hay chưa. Hãy tải ảnh lên lại để bắt đầu phiên chỉnh sửa mới.",
-          { code: "NETWORK_ERROR_ON_APPLY" }
-        );
-      }
-      throw err;
+// Gửi một thay đổi trạng thái (operations, undo, redo, reset) kèm expected_version hiện tại
+async function applyChange(path, body) {
+  setStatus("Đang xử lý...");
+  let data, message;
+  try {
+    ({ data, message } = await request("/api/images/" + image.id + "/" + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...body, expected_version: image.version }),
+    }));
+  } catch (err) {
+    if (err.code === "NETWORK_ERROR") {
+      // Chưa biết server đã ghi thay đổi này chưa: không tự gửi lặp, bắt đầu phiên mới
+      resetEditor();
+      throw new ApiError(
+        "Mất kết nối khi áp dụng thao tác nên chưa rõ ảnh đã đổi hay chưa. Hãy tải ảnh lên lại để bắt đầu phiên chỉnh sửa mới.",
+        { code: "NETWORK_ERROR_ON_APPLY" }
+      );
     }
-    syncFrom(data);
-    await refreshView();
-    setStatus(message);
-  })
-);
+    throw err;
+  }
+  syncFrom(data);
+  await refreshView();
+  setStatus(message);
+}
+
+// Tham số của các thao tác lấy từ ô nhập; số được gửi dưới dạng số, server kiểm tra phạm vi
+const PARAMS = {
+  grayscale: () => ({}),
+  brightness: () => ({ value: Number($("brightness").value) }),
+  contrast: () => ({ factor: Number($("contrast").value) }),
+  blur: () => ({ kernel_size: Number($("blur").value) }),
+  sharpen: () => ({ level: Number($("sharpen").value) }),
+  resize: () => ({ width: Number($("rs-width").value), height: Number($("rs-height").value) }),
+  crop: () => ({
+    x: Number($("cr-x").value), y: Number($("cr-y").value),
+    width: Number($("cr-w").value), height: Number($("cr-h").value),
+  }),
+};
+
+$("editor").addEventListener("click", (e) => {
+  const button = e.target.closest("button[data-op]");
+  if (!button || busy || !image) return;
+  const operation = button.dataset.op;
+  const parameters = button.dataset.params ? JSON.parse(button.dataset.params) : PARAMS[operation]();
+  run(() => applyChange("operations", { operation, parameters }));
+});
+
+for (const action of ["undo", "redo", "reset"]) {
+  $(action).addEventListener("click", () => {
+    if (!busy && image) run(() => applyChange(action, {}));
+  });
+}
+
+// Giá trị bên cạnh thanh trượt; ô Rộng/Cao của đổi kích thước giữ tỷ lệ khi bật khóa
+$("editor").addEventListener("input", (e) => {
+  const out = document.getElementById(e.target.id + "-out");
+  if (out) out.textContent = e.target.value;
+  if (!image || !$("rs-lock").checked) return;
+  const { width, height } = image.current;
+  const value = Number(e.target.value);
+  if (e.target.id === "rs-width" && value > 0) $("rs-height").value = Math.max(1, Math.round((value * height) / width));
+  if (e.target.id === "rs-height" && value > 0) $("rs-width").value = Math.max(1, Math.round((value * width) / height));
+});
 
 // Tên tệp tải xuống: bỏ đuôi, bỏ ký tự hợp đồng không cho phép, tối đa 100 ký tự
 function downloadStem(name) {
