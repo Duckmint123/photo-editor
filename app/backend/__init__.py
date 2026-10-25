@@ -8,7 +8,11 @@ from .services.store import ImageStore
 
 
 def create_app(test_config=None):
-    app = Flask(__name__)
+    app = Flask(
+        __name__,
+        template_folder="../frontend/templates",   # tính từ thư mục app/backend
+        static_folder="../frontend/static",
+    )
     app.config.update(
         SECRET_KEY="dev-only-change-me",      # đổi khi triển khai thật
         SESSION_COOKIE_HTTPONLY=True,
@@ -23,7 +27,7 @@ def create_app(test_config=None):
     )
     if test_config:
         app.config.update(test_config)
-        app.json.ensure_ascii = False
+    app.json.ensure_ascii = False
 
     base = app.config["INSTANCE_DIR"] or app.instance_path
     store = ImageStore(

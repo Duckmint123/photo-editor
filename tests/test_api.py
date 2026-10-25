@@ -7,8 +7,8 @@ import cv2
 import numpy as np
 from PIL import Image, ImageOps
 
-from imageeditor.app.backend import create_app
-from imageeditor.app.backend.image_processing import OPERATIONS
+from app.backend import create_app
+from app.backend.image_processing import OPERATIONS
 from app.backend.validators.operations import PARAM_VALIDATORS
 
 from .conftest import decode, export, make_image, new_image, op, upload
@@ -150,9 +150,9 @@ def test_grayscale_keeps_size_and_alpha_and_counts_repeats(client):
 def test_operation_validation(client):
     i = new_image(client)["image_id"]
     url = f"/api/images/{i}/operations"
-    assert error_of(op(client, i, 0, operation="blur")) == ("UNSUPPORTED_OPERATION", "operation")
+    assert error_of(op(client, i, 0, operation="sepia")) == ("UNSUPPORTED_OPERATION", "operation")
     assert error_of(op(client, i, 0, operation=5)) == ("INVALID_PARAMETER", "operation")
-    assert error_of(op(client, i, 0, parameters={"x": 1})) == ("INVALID_PARAMETER", "parameters")
+    assert error_of(op(client, i, 0, parameters={"x": 1})) == ("INVALID_PARAMETER", "parameters.x")
     assert error_of(op(client, i, 0, parameters=[])) == ("INVALID_PARAMETER", "parameters")
     assert error_of(op(client, i, 0, extra=1)) == ("INVALID_PARAMETER", "extra")
     for bad in (-1, "0", True, 1.5, None):

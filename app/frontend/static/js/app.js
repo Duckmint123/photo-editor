@@ -5,6 +5,8 @@ let image = null;   // trạng thái ảnh do server trả về (version luôn l
 let busy = false;   // đang gọi API: bỏ qua thao tác mới, kể cả thả ảnh
 const objectUrls = { orig: null, result: null };
 let originalLoadedFor = null;
+let controlsImageId = null;   // ảnh mà các công cụ đã được đặt về mặc định
+let controlsSize = null;      // kích thước mà ô Rộng/Cao và vùng cắt đang theo
 
 const STEP_LABELS = {
   grayscale: "Chuyển xám", brightness: "Độ sáng", contrast: "Tương phản", blur: "Làm mờ",
@@ -128,19 +130,29 @@ function setSlider(id, value) {
   $(id + "-out").textContent = String(value);
 }
 
-// Sau mỗi thay đổi: thanh trượt về mặc định, ô kích thước và vùng cắt theo ảnh hiện tại
+// Chỉ đặt công cụ về mặc định khi tải ảnh mới. Sau mỗi bước, giá trị người dùng đã chọn được giữ
+// nguyên; riêng ô Rộng/Cao và vùng cắt chỉ cập nhật khi kích thước ảnh thật sự đổi,
+// vì khi đó giá trị cũ không còn khớp với ảnh.
 function syncControls() {
   const c = image.current;
-  setSlider("brightness", 0);
-  setSlider("contrast", 1);
-  setSlider("blur", 5);
-  $("sharpen").value = "2";
-  $("rs-width").value = c.width;
-  $("rs-height").value = c.height;
-  $("cr-x").value = 0;
-  $("cr-y").value = 0;
-  $("cr-w").value = c.width;
-  $("cr-h").value = c.height;
+  if (controlsImageId !== image.id) {
+    setSlider("brightness", 0);
+    setSlider("contrast", 1);
+    setSlider("blur", 5);
+    $("sharpen").value = "2";
+    controlsImageId = image.id;
+    controlsSize = null;
+  }
+  const size = c.width + "x" + c.height;
+  if (controlsSize !== size) {
+    $("rs-width").value = c.width;
+    $("rs-height").value = c.height;
+    $("cr-x").value = 0;
+    $("cr-y").value = 0;
+    $("cr-w").value = c.width;
+    $("cr-h").value = c.height;
+    controlsSize = size;
+  }
 }
 
 // <img src> không đọc được JSON lỗi (409, 404...), nên tải bằng fetch rồi tạo Object URL
@@ -170,6 +182,8 @@ async function refreshView() {
 function resetEditor() {
   image = null;
   originalLoadedFor = null;
+  controlsImageId = null;
+  controlsSize = null;
   $("editor").hidden = true;
   for (const key of Object.keys(objectUrls)) {
     if (objectUrls[key]) URL.revokeObjectURL(objectUrls[key]);
@@ -196,6 +210,7 @@ async function handleError(err) {
 }
 
 async function run(task) {
+  const focused = document.activeElement;   // nút vừa bấm bị khóa tạm thời nên sẽ mất focus
   setBusy(true);
   try {
     await task();
@@ -203,6 +218,7 @@ async function run(task) {
     await handleError(err);
   } finally {
     setBusy(false);   // luôn mở khóa giao diện, kể cả khi phản hồi không phải JSON hợp lệ
+    if (focused && focused !== document.body && !focused.disabled) focused.focus({ preventScroll: true });
   }
 }
 
