@@ -1,6 +1,7 @@
 import math
 from functools import partial
 
+from ..image_processing.geometry import RATIOS, percent_size, ratio_crop_box, rotated_size
 from .common import check_fields, parse_expected_version
 from .errors import ApiError, invalid
 
@@ -54,6 +55,18 @@ SCHEMAS = {
     "resize": {"width": _int_in(1, MAX_SIDE), "height": _int_in(1, MAX_SIDE)},
     "crop": {"x": _int_in(0, MAX_SIDE), "y": _int_in(0, MAX_SIDE),
              "width": _int_in(1, MAX_SIDE), "height": _int_in(1, MAX_SIDE)},
+    "clahe": {"clip_limit": _number_in(1.0, 10.0), "tile_grid_size": _int_in(2, 16)},
+    "invert": {},
+    "sepia": {},
+    "warm": {},
+    "cool": {},
+    "vintage": {},
+    "canny": {"threshold1": _int_in(0, 255), "threshold2": _int_in(0, 255)},
+    "threshold": {"value": _int_in(0, 255)},
+    "otsu": {},
+    "rotate_free": {"angle": _number_in(-360, 360)},   # độ, theo chiều kim đồng hồ; âm là ngược chiều
+    "resize_percent": {"percent": _number_in(1, 1000)},
+    "crop_ratio": {"ratio": _one_of(tuple(RATIOS))},
 }
 
 OPERATION_MESSAGES = {
@@ -66,6 +79,18 @@ OPERATION_MESSAGES = {
     "flip": "Đã lật ảnh.",
     "resize": "Đã đổi kích thước ảnh.",
     "crop": "Đã cắt ảnh.",
+    "clahe": "Đã tăng cường độ tương phản cục bộ (CLAHE).",
+    "invert": "Đã chuyển ảnh sang âm bản.",
+    "sepia": "Đã áp dụng tông sepia.",
+    "warm": "Đã áp dụng tông ấm.",
+    "cool": "Đã áp dụng tông lạnh.",
+    "vintage": "Đã áp dụng bộ lọc cổ điển.",
+    "canny": "Đã dò biên Canny.",
+    "threshold": "Đã áp dụng ngưỡng cố định.",
+    "otsu": "Đã áp dụng ngưỡng Otsu.",
+    "rotate_free": "Đã xoay ảnh theo góc tùy chỉnh.",
+    "resize_percent": "Đã đổi kích thước theo phần trăm.",
+    "crop_ratio": "Đã cắt ảnh theo tỷ lệ.",
 }
 
 
@@ -83,6 +108,8 @@ def validate_params(name, params):
             clean[key] = check(params[key])
         except ValueError as e:
             raise invalid(f"parameters.{key}", f"{key} {e}.")
+        if name == "canny" and clean["threshold1"] > clean["threshold2"]:   # ngưỡng thấp không được lớn hơn ngưỡng cao
+            raise invalid("parameters.threshold1", "threshold1 phải nhỏ hơn hoặc bằng threshold2.")
     return clean
 
 
@@ -122,12 +149,21 @@ def check_operation_context(name, params, current, max_pixels):
             raise invalid("parameters.width", f"Vùng cắt vượt ra ngoài ảnh (ảnh rộng {width}px).")
         if params["y"] + params["height"] > height:
             raise invalid("parameters.height", f"Vùng cắt vượt ra ngoài ảnh (ảnh cao {height}px).")
-    elif name == "resize":
-        if params["width"] * params["height"] > max_pixels:
-            raise ApiError(
-                "IMAGE_DIMENSIONS_EXCEEDED",
-                f"Kích thước mới vượt quá {max_pixels // 1_000_000} triệu pixel.", 422, "parameters",
-            )
+        elif name in ("resize", "resize_percent", "rotate_free"):
+            if name == "resize":
+                new_w, new_h = params["width"], params["height"]
+            elif name == "resize_percent":
+                new_w, new_h = percent_size(current["width"], current["height"], params["percent"])
+            else:   # xoay tự do mở rộng khung, ảnh có thể lớn hơn ảnh hiện tại
+                new_w, new_h = rotated_size(current["width"], current["height"], params["angle"])
+            if new_w * new_h > max_pixels:
+                raise ApiError(
+                    "IMAGE_DIMENSIONS_EXCEEDED",
+                    f"Kích thước mới vượt quá {max_pixels // 1_000_000} triệu pixel.", 422, "parameters",
+                )
+    elif name == "crop_ratio":
+        if ratio_crop_box(current["width"], current["height"], params["ratio"]) is None:
+            raise invalid("parameters.ratio", f"Ảnh quá nhỏ để cắt theo tỷ lệ {params['ratio']}.")
 
 
 def validate_version_body(body):

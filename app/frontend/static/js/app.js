@@ -11,6 +11,9 @@ let controlsSize = null;      // kích thước mà ô Rộng/Cao và vùng cắ
 const STEP_LABELS = {
   grayscale: "Chuyển xám", brightness: "Độ sáng", contrast: "Tương phản", blur: "Làm mờ",
   sharpen: "Làm nét", rotate: "Xoay", flip: "Lật", resize: "Đổi kích thước", crop: "Cắt",
+  clahe: "CLAHE", invert: "Âm bản", sepia: "Sepia", warm: "Tông ấm", cool: "Tông lạnh", 
+  vintage: "Vintage", canny: "Canny", threshold: "Ngưỡng cố định", otsu: "Otsu",
+  rotate_free: "Xoay tự do", resize_percent: "Đổi kích thước %", crop_ratio: "Cắt theo tỷ lệ",
 };
 
 // ---------- Lỗi và gọi API ----------
@@ -151,6 +154,13 @@ function syncControls() {
     $("cr-y").value = 0;
     $("cr-w").value = c.width;
     $("cr-h").value = c.height;
+    setSlider("rf-angle", 0);
+    $("rp-percent").value = 100;
+    setSlider("clahe-clip", 2);
+    setSlider("clahe-tile", 8);
+    setSlider("canny-low", 50);
+    setSlider("canny-high", 150);
+    setSlider("th-value", 128);
     controlsSize = size;
   }
 }
@@ -318,6 +328,11 @@ const PARAMS = {
     x: Number($("cr-x").value), y: Number($("cr-y").value),
     width: Number($("cr-w").value), height: Number($("cr-h").value),
   }),
+  rotate_free: () => ({ angle: Number($("rf-angle").value) }),
+  resize_percent: () => ({ percent: Number($("rp-percent").value) }),
+  clahe: () => ({ clip_limit: Number($("clahe-clip").value), tile_grid_size: Number($("clahe-tile").value) }),
+  canny: () => ({ threshold1: Number($("canny-low").value), threshold2: Number($("canny-high").value) }),
+  threshold: () => ({ value: Number($("th-value").value) }),
 };
 
 $("editor").addEventListener("click", (e) => {

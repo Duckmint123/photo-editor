@@ -150,7 +150,7 @@ def test_grayscale_keeps_size_and_alpha_and_counts_repeats(client):
 def test_operation_validation(client):
     i = new_image(client)["image_id"]
     url = f"/api/images/{i}/operations"
-    assert error_of(op(client, i, 0, operation="sepia")) == ("UNSUPPORTED_OPERATION", "operation")
+    assert error_of(op(client, i, 0, operation="emboss")) == ("UNSUPPORTED_OPERATION", "operation")
     assert error_of(op(client, i, 0, operation=5)) == ("INVALID_PARAMETER", "operation")
     assert error_of(op(client, i, 0, parameters={"x": 1})) == ("INVALID_PARAMETER", "parameters.x")
     assert error_of(op(client, i, 0, parameters=[])) == ("INVALID_PARAMETER", "parameters")
