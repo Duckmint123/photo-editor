@@ -7,106 +7,216 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-  <main>
-    <h1>Photo Editor</h1>
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+        <h1>Photo Editor</h1>
+      </div>
+    </div>
+  </header>
 
-    <section class="panel">
+  <main>
+    <!-- Vùng tải ảnh lên -->
+    <section class="panel upload-panel">
       <label class="dropzone" id="dropzone">
         <input type="file" id="file" class="visually-hidden" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+        <svg class="dz-icon" viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.75">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
         <span class="dz-title">Kéo ảnh vào đây hoặc bấm để chọn ảnh</span>
         <span class="dz-hint">JPG, PNG, WebP, tối đa 10 MB</span>
       </label>
       <p id="status" role="status"></p>
     </section>
 
+    <!-- Không gian chỉnh sửa chính -->
     <section class="panel" id="editor" hidden>
+      <!-- Thông tin chi tiết ảnh -->
       <dl id="meta"></dl>
 
+      <!-- Thanh tác vụ lịch sử & tải xuống -->
       <div class="toolbar">
-        <button id="undo" type="button" class="secondary">Hoàn tác</button>
-        <button id="redo" type="button" class="secondary">Làm lại</button>
-        <button id="reset" type="button" class="secondary">Đặt lại</button>
+        <div class="toolbar-group">
+          <button id="undo" type="button" class="secondary">Hoàn tác</button>
+          <button id="redo" type="button" class="secondary">Làm lại</button>
+          <button id="reset" type="button" class="secondary danger-outline">Đặt lại</button>
+        </div>
         <span class="spacer"></span>
-        <select id="fmt" aria-label="Định dạng tải xuống">
-          <option value="png">PNG</option>
-          <option value="jpg">JPG</option>
-          <option value="webp">WebP</option>
-        </select>
-        <button id="download" type="button">Tải xuống</button>
+        <div class="toolbar-group export-group">
+          <select id="fmt" aria-label="Định dạng tải xuống">
+            <option value="png">PNG</option>
+            <option value="jpg">JPG</option>
+            <option value="webp">WebP</option>
+          </select>
+          <button id="download" type="button" class="btn-download">Tải xuống</button>
+        </div>
       </div>
 
+      <!-- Khung so sánh ảnh trực quan đặt ngay dưới thanh công cụ -->
+      <div class="compare">
+        <figure>
+          <figcaption>Ảnh gốc</figcaption>
+          <div class="img-viewport">
+            <img id="orig" alt="Ảnh gốc">
+          </div>
+        </figure>
+        <figure>
+          <figcaption>Kết quả</figcaption>
+          <div class="img-viewport">
+            <img id="result" alt="Ảnh kết quả">
+          </div>
+        </figure>
+      </div>
+
+      <!-- Bảng công cụ chỉnh sửa -->
       <div class="tools">
         <div class="tool">
-          <span class="tool-name">Màu sắc</span>
-          <button type="button" data-op="grayscale">Chuyển xám</button>
+          <div class="tool-header">
+            <span class="tool-name">Màu sắc</span>
+          </div>
+          <div class="tool-body">
+            <p class="tool-desc">Chuyển đổi ảnh sang thang độ xám (đen trắng).</p>
+          </div>
+          <div class="tool-footer">
+            <button type="button" data-op="grayscale" class="full-width">Chuyển xám</button>
+          </div>
         </div>
 
         <div class="tool">
-          <label for="brightness">Độ sáng</label>
-          <input type="range" id="brightness" min="-100" max="100" step="1" value="0">
-          <output id="brightness-out">0</output>
-          <button type="button" data-op="brightness">Áp dụng</button>
+          <div class="tool-header">
+            <label for="brightness">Độ sáng</label>
+            <output id="brightness-out">0</output>
+          </div>
+          <div class="tool-body">
+            <input type="range" id="brightness" min="-100" max="100" step="1" value="0">
+          </div>
+          <div class="tool-footer">
+            <button type="button" data-op="brightness">Áp dụng</button>
+          </div>
         </div>
 
         <div class="tool">
-          <label for="contrast">Tương phản</label>
-          <input type="range" id="contrast" min="0.5" max="3" step="0.1" value="1">
-          <output id="contrast-out">1</output>
-          <button type="button" data-op="contrast">Áp dụng</button>
+          <div class="tool-header">
+            <label for="contrast">Tương phản</label>
+            <output id="contrast-out">1</output>
+          </div>
+          <div class="tool-body">
+            <input type="range" id="contrast" min="0.5" max="3" step="0.1" value="1">
+          </div>
+          <div class="tool-footer">
+            <button type="button" data-op="contrast">Áp dụng</button>
+          </div>
         </div>
 
         <div class="tool">
-          <label for="blur">Làm mờ (cỡ nhân)</label>
-          <input type="range" id="blur" min="3" max="31" step="2" value="5">
-          <output id="blur-out">5</output>
-          <button type="button" data-op="blur">Áp dụng</button>
+          <div class="tool-header">
+            <label for="blur">Làm mờ (cỡ nhân)</label>
+            <output id="blur-out">5</output>
+          </div>
+          <div class="tool-body">
+            <input type="range" id="blur" min="3" max="31" step="2" value="5">
+          </div>
+          <div class="tool-footer">
+            <button type="button" data-op="blur">Áp dụng</button>
+          </div>
         </div>
 
         <div class="tool">
-          <label for="sharpen">Làm nét</label>
-          <select id="sharpen">
-            <option value="1">Nhẹ</option>
-            <option value="2" selected>Vừa</option>
-            <option value="3">Mạnh</option>
-          </select>
-          <button type="button" data-op="sharpen">Áp dụng</button>
+          <div class="tool-header">
+            <label for="sharpen">Làm nét</label>
+          </div>
+          <div class="tool-body">
+            <select id="sharpen" class="full-width">
+              <option value="1">Nhẹ</option>
+              <option value="2" selected>Vừa</option>
+              <option value="3">Mạnh</option>
+            </select>
+          </div>
+          <div class="tool-footer">
+            <button type="button" data-op="sharpen">Áp dụng</button>
+          </div>
         </div>
 
         <div class="tool">
-          <span class="tool-name">Xoay</span>
-          <button type="button" data-op="rotate" data-params='{"angle": 270}'>Trái 90°</button>
-          <button type="button" data-op="rotate" data-params='{"angle": 90}'>Phải 90°</button>
-          <button type="button" data-op="rotate" data-params='{"angle": 180}'>180°</button>
+          <div class="tool-header">
+            <span class="tool-name">Xoay</span>
+          </div>
+          <div class="tool-body btn-group">
+            <button type="button" data-op="rotate" data-params='{"angle": 270}'>Trái 90°</button>
+            <button type="button" data-op="rotate" data-params='{"angle": 90}'>Phải 90°</button>
+            <button type="button" data-op="rotate" data-params='{"angle": 180}'>180°</button>
+          </div>
         </div>
 
         <div class="tool">
-          <span class="tool-name">Lật</span>
-          <button type="button" data-op="flip" data-params='{"direction": "horizontal"}'>Ngang</button>
-          <button type="button" data-op="flip" data-params='{"direction": "vertical"}'>Dọc</button>
-          <button type="button" data-op="flip" data-params='{"direction": "both"}'>Cả hai</button>
+          <div class="tool-header">
+            <span class="tool-name">Lật</span>
+          </div>
+          <div class="tool-body btn-group">
+            <button type="button" data-op="flip" data-params='{"direction": "horizontal"}'>Ngang</button>
+            <button type="button" data-op="flip" data-params='{"direction": "vertical"}'>Dọc</button>
+            <button type="button" data-op="flip" data-params='{"direction": "both"}'>Cả hai</button>
+          </div>
         </div>
 
         <div class="tool">
-          <span class="tool-name">Đổi kích thước (px)</span>
-          <label class="inline" for="rs-width">Rộng</label>
-          <input type="number" id="rs-width" min="1" step="1" inputmode="numeric">
-          <label class="inline" for="rs-height">Cao</label>
-          <input type="number" id="rs-height" min="1" step="1" inputmode="numeric">
-          <label class="inline"><input type="checkbox" id="rs-lock" checked> Giữ tỷ lệ</label>
-          <button type="button" data-op="resize">Áp dụng</button>
+          <div class="tool-header">
+            <span class="tool-name">Đổi kích thước (px)</span>
+          </div>
+          <div class="tool-body">
+            <div class="field-grid">
+              <div class="field-item">
+                <label class="inline" for="rs-width">Rộng</label>
+                <input type="number" id="rs-width" min="1" step="1" inputmode="numeric">
+              </div>
+              <div class="field-item">
+                <label class="inline" for="rs-height">Cao</label>
+                <input type="number" id="rs-height" min="1" step="1" inputmode="numeric">
+              </div>
+            </div>
+            <label class="checkbox-label">
+              <input type="checkbox" id="rs-lock" checked> Giữ tỷ lệ
+            </label>
+          </div>
+          <div class="tool-footer">
+            <button type="button" data-op="resize">Áp dụng</button>
+          </div>
         </div>
 
         <div class="tool">
-          <span class="tool-name">Cắt (tọa độ px, gốc ở góc trên trái)</span>
-          <label class="inline" for="cr-x">X</label>
-          <input type="number" id="cr-x" min="0" step="1" inputmode="numeric">
-          <label class="inline" for="cr-y">Y</label>
-          <input type="number" id="cr-y" min="0" step="1" inputmode="numeric">
-          <label class="inline" for="cr-w">Rộng</label>
-          <input type="number" id="cr-w" min="1" step="1" inputmode="numeric">
-          <label class="inline" for="cr-h">Cao</label>
-          <input type="number" id="cr-h" min="1" step="1" inputmode="numeric">
-          <button type="button" data-op="crop">Áp dụng</button>
+          <div class="tool-header">
+            <span class="tool-name">Cắt (tọa độ px, gốc ở góc trên trái)</span>
+          </div>
+          <div class="tool-body">
+            <div class="field-grid">
+              <div class="field-item">
+                <label class="inline" for="cr-x">X</label>
+                <input type="number" id="cr-x" min="0" step="1" inputmode="numeric">
+              </div>
+              <div class="field-item">
+                <label class="inline" for="cr-y">Y</label>
+                <input type="number" id="cr-y" min="0" step="1" inputmode="numeric">
+              </div>
+              <div class="field-item">
+                <label class="inline" for="cr-w">Rộng</label>
+                <input type="number" id="cr-w" min="1" step="1" inputmode="numeric">
+              </div>
+              <div class="field-item">
+                <label class="inline" for="cr-h">Cao</label>
+                <input type="number" id="cr-h" min="1" step="1" inputmode="numeric">
+              </div>
+            </div>
+          </div>
+          <div class="tool-footer">
+            <button type="button" data-op="crop">Áp dụng</button>
+          </div>
         </div>
                 <div class="tool">
           <label for="rf-angle">Xoay tự do (độ, chiều kim đồng hồ)</label>
@@ -174,11 +284,6 @@
           <output id="th-value-out">128</output>
           <button type="button" data-op="threshold">Ngưỡng cố định</button>
         </div>
-      </div>
-
-      <div class="compare">
-        <figure><figcaption>Ảnh gốc</figcaption><img id="orig" alt="Ảnh gốc"></figure>
-        <figure><figcaption>Kết quả</figcaption><img id="result" alt="Ảnh kết quả"></figure>
       </div>
     </section>
   </main>
