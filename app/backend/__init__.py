@@ -1,5 +1,6 @@
 import threading
 import time
+import os
 
 from flask import Flask
 
@@ -14,7 +15,7 @@ def create_app(test_config=None):
         static_folder="../frontend/static",
     )
     app.config.update(
-        SECRET_KEY="dev-only-change-me",      # đổi khi triển khai thật
+        SECRET_KEY=os.environ.get("SECRET_KEY", "dev-only-change-me"), 
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         INSTANCE_DIR=None,                    # mặc định: thư mục instance/
