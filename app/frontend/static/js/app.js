@@ -10,10 +10,11 @@ let controlsSize = null;      // kích thước mà ô Rộng/Cao và vùng cắ
 
 const STEP_LABELS = {
   grayscale: "Chuyển xám", brightness: "Độ sáng", contrast: "Tương phản", blur: "Làm mờ",
-  sharpen: "Làm nét", rotate: "Xoay", flip: "Lật", resize: "Đổi kích thước", crop: "Cắt",
+  rotate: "Xoay", flip: "Lật", resize: "Đổi kích thước", crop: "Cắt",
   clahe: "CLAHE", invert: "Âm bản", sepia: "Sepia", warm: "Tông ấm", cool: "Tông lạnh", 
   vintage: "Vintage", canny: "Canny", threshold: "Ngưỡng cố định", otsu: "Otsu",
-  rotate_free: "Xoay tự do", resize_percent: "Đổi kích thước %", crop_ratio: "Cắt theo tỷ lệ",
+  rotate_free: "Xoay tự do", resize_percent: "Đổi kích thước %", crop_ratio: "Cắt theo tỷ lệ", 
+  upscale: "Phóng to & làm nét"
 };
 
 // ---------- Lỗi và gọi API ----------
@@ -76,6 +77,7 @@ function updateButtons() {
 
 function setBusy(value) {
   busy = value;
+  document.body.classList.toggle("busy", value);   // con trỏ "đang xử lý" cho các thao tác chậm (phóng to, giảm nhiễu)
   updateButtons();
 }
 
@@ -142,7 +144,6 @@ function syncControls() {
     setSlider("brightness", 0);
     setSlider("contrast", 1);
     setSlider("blur", 5);
-    $("sharpen").value = "2";
     controlsImageId = image.id;
     controlsSize = null;
   }
@@ -161,8 +162,25 @@ function syncControls() {
     setSlider("canny-low", 50);
     setSlider("canny-high", 150);
     setSlider("th-value", 128);
+    $("up-mode").value = "percent";
+    setUpscaleDefaults();
+    setSlider("up-amount", 1.5);
+    setSlider("up-radius", 1.5);
+    setSlider("up-denoise", 0);
     controlsSize = size;
   }
+}
+
+// Ô giá trị phóng to đổi theo chế độ: phần trăm (từ 100) hoặc chiều rộng mới (từ chiều rộng hiện tại)
+function setUpscaleDefaults() {
+  const pixels = $("up-mode").value === "pixels";
+  const input = $("up-value");
+  input.min = pixels ? image.current.width : 100;
+  input.max = pixels ? 100000 : 1000;
+  input.value = pixels ? image.current.width * 2 : 200;
+  $("up-hint").textContent = pixels
+    ? "Chiều cao tự tính theo tỷ lệ ảnh hiện tại"
+    : "100% = giữ kích thước, chỉ làm nét";
 }
 
 // <img src> không đọc được JSON lỗi (409, 404...), nên tải bằng fetch rồi tạo Object URL
@@ -187,7 +205,25 @@ async function refreshView() {
     originalLoadedFor = image.id;
   }
   await loadPreview("result", $("result"), image.previewUrl);
+  updateBeforeAfter();
 }
+
+// Hai ảnh chồng lên nhau chỉ khớp khi cùng tỷ lệ khung hình (ví dụ sau khi cắt thì ẩn đi)
+function updateBeforeAfter() {
+  const m = image.metadata;
+  const c = image.current;
+  const sameRatio = Math.abs(m.width / m.height - c.width / c.height) < 0.01;
+  $("ba-wrap").hidden = !sameRatio;
+  if (!sameRatio) return;
+  $("ba-before").src = objectUrls.orig;
+  $("ba-after").src = objectUrls.result;
+  $("ba").style.setProperty("--pos", $("ba-pos").value + "%");
+}
+
+$("ba-pos").addEventListener("input", (e) => $("ba").style.setProperty("--pos", e.target.value + "%"));
+$("up-mode").addEventListener("change", () => {
+  if (image) setUpscaleDefaults();
+});
 
 function resetEditor() {
   image = null;
@@ -201,6 +237,9 @@ function resetEditor() {
   }
   $("orig").removeAttribute("src");
   $("result").removeAttribute("src");
+  $("ba-before").removeAttribute("src");
+  $("ba-after").removeAttribute("src");
+  $("ba-wrap").hidden = true;
 }
 
 async function handleError(err) {
@@ -322,7 +361,6 @@ const PARAMS = {
   brightness: () => ({ value: Number($("brightness").value) }),
   contrast: () => ({ factor: Number($("contrast").value) }),
   blur: () => ({ kernel_size: Number($("blur").value) }),
-  sharpen: () => ({ level: Number($("sharpen").value) }),
   resize: () => ({ width: Number($("rs-width").value), height: Number($("rs-height").value) }),
   crop: () => ({
     x: Number($("cr-x").value), y: Number($("cr-y").value),
@@ -333,6 +371,11 @@ const PARAMS = {
   clahe: () => ({ clip_limit: Number($("clahe-clip").value), tile_grid_size: Number($("clahe-tile").value) }),
   canny: () => ({ threshold1: Number($("canny-low").value), threshold2: Number($("canny-high").value) }),
   threshold: () => ({ value: Number($("th-value").value) }),
+  upscale: () => ({
+    mode: $("up-mode").value, value: Number($("up-value").value),
+    amount: Number($("up-amount").value), radius: Number($("up-radius").value),
+    denoise: Number($("up-denoise").value),
+  }),
 };
 
 $("editor").addEventListener("click", (e) => {

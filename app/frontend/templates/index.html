@@ -74,6 +74,14 @@
           </div>
         </figure>
       </div>
+            <div id="ba-wrap" class="ba-wrap" hidden>
+        <p class="tool-name">So sánh trước / sau (kéo thanh để xem)</p>
+        <div class="ba" id="ba">
+          <img id="ba-before" alt="Trước: ảnh gốc">
+          <img id="ba-after" alt="Sau: kết quả">
+        </div>
+        <input type="range" id="ba-pos" min="0" max="100" step="1" value="50" aria-label="Vị trí đường so sánh">
+      </div>
 
       <!-- Bảng công cụ chỉnh sửa -->
       <div class="tools">
@@ -125,22 +133,6 @@
           </div>
           <div class="tool-footer">
             <button type="button" data-op="blur">Áp dụng</button>
-          </div>
-        </div>
-
-        <div class="tool">
-          <div class="tool-header">
-            <label for="sharpen">Làm nét</label>
-          </div>
-          <div class="tool-body">
-            <select id="sharpen" class="full-width">
-              <option value="1">Nhẹ</option>
-              <option value="2" selected>Vừa</option>
-              <option value="3">Mạnh</option>
-            </select>
-          </div>
-          <div class="tool-footer">
-            <button type="button" data-op="sharpen">Áp dụng</button>
           </div>
         </div>
 
@@ -283,6 +275,30 @@
           <input type="range" id="th-value" min="0" max="255" step="1" value="128">
           <output id="th-value-out">128</output>
           <button type="button" data-op="threshold">Ngưỡng cố định</button>
+        </div>
+        <div class="tool tool-wide">
+          <span class="tool-name">Phóng to &amp; làm nét</span>
+          <label class="inline" for="up-mode">Phóng to theo</label>
+          <select id="up-mode">
+            <option value="percent" selected>Phần trăm (%)</option>
+            <option value="pixels">Chiều rộng mới (px)</option>
+          </select>
+          <input type="number" id="up-value" min="100" max="1000" step="1" value="200" inputmode="numeric" aria-label="Giá trị phóng to">
+          <span id="up-hint" class="hint">100% = giữ kích thước, chỉ làm nét</span>
+
+          <label for="up-amount">Độ mạnh làm nét</label>
+          <input type="range" id="up-amount" min="0" max="5" step="0.1" value="1.5">
+          <output id="up-amount-out">1.5</output>
+
+          <label for="up-radius">Bán kính làm nét (px)</label>
+          <input type="range" id="up-radius" min="0.1" max="10" step="0.1" value="1.5">
+          <output id="up-radius-out">1.5</output>
+
+          <label for="up-denoise">Giảm nhiễu (0 = tắt, chậm hơn)</label>
+          <input type="range" id="up-denoise" min="0" max="20" step="1" value="0">
+          <output id="up-denoise-out">0</output>
+
+          <button type="button" data-op="upscale">Áp dụng</button>
         </div>
       </div>
     </section>
