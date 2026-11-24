@@ -1,28 +1,21 @@
 import cv2
 import numpy as np
 
+from .alpha import keep_alpha
 
-def _apply_table(img, table):
-    """Áp bảng tra lên phần màu; kênh alpha (nếu có) giữ nguyên."""
-    out = cv2.LUT(np.ascontiguousarray(img[:, :, :3]), table)
-    return out if img.shape[2] == 3 else np.dstack([out, img[:, :, 3]])
+
+def _apply_linear(img, scale, offset):
+    """Áp dụng scale * màu + offset bằng OpenCV, giữ nguyên alpha."""
+    bgr = np.ascontiguousarray(img[:, :, :3])
+    out = cv2.addWeighted(bgr, scale, bgr, 0, offset)
+    return keep_alpha(out, img)
 
 
 def brightness(img, value):
-    """Cộng value*255/100 vào mỗi kênh màu (value từ -100 đến 100), kẹp trong 0..255.
-
-    Dùng bảng tra có kẹp giá trị thay vì cv2.convertScaleAbs, vì hàm đó lấy trị tuyệt đối
-    nên điểm ảnh tối khi giảm sáng sẽ bị bật thành sáng.
-    """
-    delta = (abs(value) * 255 + 50) // 100
-    if value < 0:
-        delta = -delta
-    table = np.clip(np.arange(256) + delta, 0, 255).astype(np.uint8)
-    return _apply_table(img, table)
+    """Chỉnh sáng từ -100 đến 100 bằng phép cộng có giới hạn của OpenCV."""
+    return _apply_linear(img, 1.0, value * 255.0 / 100.0)
 
 
 def contrast(img, factor):
-    """Kéo giãn quanh mức xám giữa: out = (in - 128) * factor + 128, kẹp trong 0..255."""
-    values = (np.arange(256) - 128.0) * factor + 128.0
-    table = np.clip(np.floor(values + 0.5), 0, 255).astype(np.uint8)
-    return _apply_table(img, table)
+    """Chỉnh tương phản quanh mức giữa 128 bằng cv2.addWeighted."""
+    return _apply_linear(img, factor, 128.0 * (1.0 - factor))

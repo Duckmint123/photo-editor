@@ -10,9 +10,9 @@ _SEPIA = np.array([
     [0.189, 0.769, 0.393],   # R'
 ], np.float32)
 
-# Hệ số nhân từng kênh (B, G, R) cho tông ấm và tông lạnh
-_WARM = (0.88, 1.00, 1.12)
-_COOL = (1.12, 1.00, 0.88)
+# Ma trận chéo: nhân riêng ba kênh B, G, R bằng cv2.transform
+_WARM_MATRIX = np.diag((0.88, 1.00, 1.12)).astype(np.float32)
+_COOL_MATRIX = np.diag((1.12, 1.00, 0.88)).astype(np.float32)
 
 
 def invert(img):
@@ -29,26 +29,20 @@ def sepia(img):
     return keep_alpha(_sepia(np.ascontiguousarray(img[:, :, :3])), img)
 
 
-def _gain(img, gains):
-    """Nhân từng kênh B, G, R với hệ số riêng (bảng tra), kẹp trong 0..255; alpha giữ nguyên."""
-    out = np.empty_like(img)
-    values = np.arange(256, dtype=np.float32)
-    for channel, gain in enumerate(gains):
-        table = np.clip(np.floor(values * gain + 0.5), 0, 255).astype(np.uint8)
-        out[:, :, channel] = cv2.LUT(np.ascontiguousarray(img[:, :, channel]), table)
-    if img.shape[2] == 4:
-        out[:, :, 3] = img[:, :, 3]
-    return out
+def _gain(img, matrix):
+    """Nhân mỗi kênh màu bằng ma trận OpenCV và giữ nguyên alpha."""
+    bgr = np.ascontiguousarray(img[:, :, :3])
+    return keep_alpha(cv2.transform(bgr, matrix), img)
 
 
 def warm(img):
     """Tông ấm: tăng đỏ, giảm xanh dương."""
-    return _gain(img, _WARM)
+    return _gain(img, _WARM_MATRIX)
 
 
 def cool(img):
     """Tông lạnh: tăng xanh dương, giảm đỏ."""
-    return _gain(img, _COOL)
+    return _gain(img, _COOL_MATRIX)
 
 
 def vintage(img):
