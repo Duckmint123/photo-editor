@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import pytest
 
-from imageeditor.app.backend.image_processing import OPERATIONS
+from app.backend.image_processing import OPERATIONS
 
 from .conftest import decode, export, make_image, new_image, op
 
@@ -171,7 +171,7 @@ def test_rotate_free_keeps_existing_transparency():
 
 
 def test_rotated_size_has_no_float_noise():
-    from imageeditor.app.backend.image_processing.geometry import rotated_size
+    from app.backend.image_processing.geometry import rotated_size
     assert rotated_size(30, 20, 90) == (20, 30)
     assert rotated_size(30, 20, 0) == (30, 20)
     assert rotated_size(30, 20, 180) == (30, 20)
@@ -275,7 +275,7 @@ def test_new_operation_parameter_validation(client):
 
 
 def test_percent_and_rotate_respect_pixel_limit(tmp_path):
-    from imageeditor.app.backend import create_app
+    from app.backend import create_app
     app = create_app({"TESTING": True, "INSTANCE_DIR": str(tmp_path), "MAX_PIXELS": 10_000})
     c = app.test_client()
     i = new_image(c, size=(60, 80))["image_id"]          # 4800 px

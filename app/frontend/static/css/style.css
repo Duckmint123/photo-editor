@@ -115,13 +115,6 @@ h1 {
   display: none;
 }
 
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin-top: 8px;
-}
 
 .dropzone {
   display: flex;
@@ -470,16 +463,6 @@ input:focus-visible {
   gap: 4px;
 }
 
-.tool > button[data-op="brightness"],
-.tool > button[data-op="contrast"],
-.tool > button[data-op="blur"],
-.tool > button[data-op="sharpen"],
-.tool > button[data-op="grayscale"],
-.tool > button[data-op="resize"],
-.tool > button[data-op="crop"] {
-  width: 100%;
-  margin-top: auto;
-}
 
 .btn-group {
   display: grid;
@@ -487,8 +470,6 @@ input:focus-visible {
   gap: 8px;
 }
 
-.tool > button[data-op="rotate"],
-.tool > button[data-op="flip"],
 .btn-group button {
   flex: 1;
   background: var(--bg-subtle);
@@ -497,8 +478,6 @@ input:focus-visible {
   padding: 8px 6px;
 }
 
-.tool > button[data-op="rotate"]:hover:not(:disabled),
-.tool > button[data-op="flip"]:hover:not(:disabled),
 .btn-group button:hover:not(:disabled) {
   background: var(--primary);
   color: #ffffff;
@@ -542,8 +521,7 @@ input:focus-visible {
   outline: none;
 }
 
-.checkbox-label,
-.tool label.inline:has(input[type="checkbox"]) {
+.checkbox-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -626,91 +604,15 @@ img {
   transition: opacity 0.2s ease, filter 0.2s ease;
 }
 
-#editor.is-loading #result {
+body.busy #editor #result {
   opacity: 0.4;
   filter: grayscale(40%) blur(1px);
   pointer-events: none;
 }
 
-/* ===== Nhóm nhiều thanh trượt (CLAHE, Canny, Phóng to & làm nét) ===== */
-.tool-wide {
-  grid-column: 1 / -1;
-}
-
-.slider-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px 24px;
-}
-
-.slider-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.slider-field .tool-header label {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-/* ===== So sánh trước / sau ===== */
-.ba-wrap[hidden] {
-  display: none; /* figure có display:flex nên thuộc tính hidden không tự ẩn được */
-}
-
-.ba-wrap input[type="range"] {
-  width: calc(100% - 28px);
-  margin: 12px 14px;
-  accent-color: var(--primary);
-  cursor: pointer;
-}
-
-.ba {
-  --pos: 50%;
-  position: relative;
-  width: 100%;
-  max-width: 720px;
-  line-height: 0;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sm);
-}
-
-.ba img {
-  width: 100%;
-  max-height: none;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  background: none;
-}
-
-/* Ảnh "sau" nằm đè lên ảnh "trước", chỉ hiện từ đường chia trở sang phải */
-.ba img + img {
-  position: absolute;
-  inset: 0;
-  height: 100%;
-  clip-path: inset(0 0 0 var(--pos));
-}
-
-.ba::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: var(--pos);
-  width: 2px;
-  background: var(--primary);
-  transform: translateX(-1px);
-  pointer-events: none;
-}
-
-/* ===== Trạng thái chờ khi gọi API (phóng to, giảm nhiễu hơi chậm) ===== */
-#editor.is-loading,
-#editor.is-loading button {
+/* ===== Trạng thái chờ khi gọi API ===== */
+body.busy #editor,
+body.busy #editor button {
   cursor: progress;
 }
 

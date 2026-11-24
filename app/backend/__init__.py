@@ -1,6 +1,6 @@
+import os
 import threading
 import time
-import os
 
 from flask import Flask
 
@@ -9,20 +9,28 @@ from .services.store import ImageStore
 
 
 def create_app(test_config=None):
+    secret_key = os.environ.get("SECRET_KEY")
+    is_testing = bool((test_config or {}).get("TESTING"))
+    if os.environ.get("RENDER") and not secret_key and not is_testing:
+        raise RuntimeError("Set SECRET_KEY in the Render environment.")
+    # Render dùng giới hạn thấp hơn để giảm nguy cơ hết RAM; có thể đặt MAX_PIXELS để ghi đè.
+    max_pixels_default = 2_000_000 if os.environ.get("RENDER") else 20_000_000
+
     app = Flask(
         __name__,
         template_folder="../frontend/templates",   # tính từ thư mục app/backend
         static_folder="../frontend/static",
     )
     app.config.update(
-        SECRET_KEY=os.environ.get("SECRET_KEY", "dev-only-change-me"), 
+        SECRET_KEY=secret_key or "dev-only-change-me",
         SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SECURE=bool(os.environ.get("RENDER")),
         SESSION_COOKIE_SAMESITE="Lax",
         INSTANCE_DIR=None,                    # mặc định: thư mục instance/
         MAX_FILE_BYTES=10 * 1024 * 1024,      # một tệp ảnh: 10 MiB
         MAX_CONTENT_LENGTH=11 * 1024 * 1024,  # cả request upload: 11 MiB
-        MAX_PIXELS=20_000_000,                # 20 triệu pixel
-        IMAGE_TTL_SECONDS=60 * 60,            # ảnh tạm tồn tại 60 phút kể từ lần dùng cuối
+        MAX_PIXELS=int(os.environ.get("MAX_PIXELS", max_pixels_default)),
+        IMAGE_TTL_SECONDS=60 * 60,            # ảnh tạm tồn tại 60 phút từ lúc tải lên
         MAX_HISTORY=20,                       # số bước thao tác tối đa
         CLEANUP_INTERVAL_SECONDS=300,
     )
