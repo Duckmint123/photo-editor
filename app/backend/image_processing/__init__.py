@@ -18,7 +18,6 @@ OPERATIONS = {
     "flip": flip,
     "resize": resize,
     "crop": crop,
-    # Tuần 5-6
     "clahe": clahe,
     "invert": invert,
     "sepia": sepia,
@@ -33,5 +32,4 @@ OPERATIONS = {
     "crop_ratio": crop_ratio,
     "sharpen": sharpen,
 }
-
 __all__ = ["OPERATIONS", "decode_image", "to_bgr_u8"]
